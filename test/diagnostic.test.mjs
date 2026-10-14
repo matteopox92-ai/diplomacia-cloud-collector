@@ -12,6 +12,6 @@ test('diagnostics normalize unexpected values',()=>{
 
 test('protocol inspection publishes only allowlisted static names',()=>{
  const result=publicAuthProtocol('x="/api/auth/refresh"; password="PRIVATE_EXAMPLE"; k="refreshToken"; bad="/api/auth/token?secret=PRIVATE_EXAMPLE";');
- assert.deepEqual(result,{authPaths:['/api/auth/refresh'],storageLabels:['refreshToken']});
+ assert.deepEqual(result.authPaths,['/api/auth/refresh']);assert.deepEqual(result.storageLabels,['refreshToken']);assert.deepEqual(result.tokenStatusNames,[]);
  assert(!JSON.stringify(result).includes('PRIVATE_EXAMPLE'));
 });
