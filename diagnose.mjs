@@ -1,5 +1,5 @@
 import {chromium} from 'playwright';
-import {safeDiagnostic} from './diagnostic-core.mjs';
+import {safeDiagnostic,publicAuthProtocol} from './diagnostic-core.mjs';
 const origin='https://diplomacia.com.tr';
 const browser=await chromium.launch({headless:true});
 let output={browserReachedGame:false};
@@ -17,6 +17,7 @@ try {
   output.browserReachedGame=!!response?.ok()&&new URL(page.url()).origin===origin;
   const publicCode=(await Promise.all(sourceReads)).join('\n');
   output.publicCode=publicCode;
+  output.protocol=publicAuthProtocol(publicCode);
   // This known read-only endpoint is used only to determine login requirements.
   // Its body is never written to disk, artifacts, screenshots or logs.
   const api=await page.evaluate(async ()=>{
@@ -31,5 +32,5 @@ try {
   // Do not print exception text: network and browser errors may include URLs.
   output.failed=true;
 } finally { await browser.close(); }
-console.log(JSON.stringify(safeDiagnostic(output)));
+console.log(JSON.stringify({...safeDiagnostic(output),protocol:output.protocol}));
 if(!output.browserReachedGame)process.exitCode=1;
