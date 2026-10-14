@@ -1,3 +1,5 @@
+import {parse} from 'acorn';
+import {summarizeGoogleAuthTree} from './auth-tree.mjs';
 import {chromium} from 'playwright';
 import {safeDiagnostic,publicAuthProtocol} from './diagnostic-core.mjs';
 const origin='https://diplomacia.com.tr';
@@ -18,6 +20,7 @@ try {
   const publicCode=(await Promise.all(sourceReads)).join('\n');
   output.publicCode=publicCode;
   output.protocol=publicAuthProtocol(publicCode);
+  try{output.authTree=summarizeGoogleAuthTree(parse(publicCode,{ecmaVersion:'latest',sourceType:'script'}));}catch{output.authTree={parsed:false};}
   // This known read-only endpoint is used only to determine login requirements.
   // Its body is never written to disk, artifacts, screenshots or logs.
   const api=await page.evaluate(async ()=>{
@@ -32,5 +35,5 @@ try {
   // Do not print exception text: network and browser errors may include URLs.
   output.failed=true;
 } finally { await browser.close(); }
-console.log(JSON.stringify({...safeDiagnostic(output),protocol:output.protocol}));
+console.log(JSON.stringify({...safeDiagnostic(output),protocol:output.protocol,authTree:output.authTree}));
 if(!output.browserReachedGame)process.exitCode=1;

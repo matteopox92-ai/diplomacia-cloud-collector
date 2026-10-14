@@ -15,3 +15,9 @@ test('protocol inspection publishes only allowlisted static names',()=>{
  assert.deepEqual(result.authPaths,['/api/auth/refresh']);assert.deepEqual(result.storageLabels,['refreshToken']);assert.deepEqual(result.tokenStatusNames,[]);
  assert(!JSON.stringify(result).includes('PRIVATE_EXAMPLE'));
 });
+import {summarizeGoogleAuthTree} from '../auth-tree.mjs';
+test('AST summary omits client IDs, secrets and token values',()=>{
+ const L=value=>({type:'Literal',value});const I=name=>({type:'Identifier',name});const P=(key,value)=>({type:'Property',key:I(key),value});
+ const tree={type:'Program',body:[{type:'CallExpression',callee:I('useAuthRequest'),arguments:[{type:'ObjectExpression',properties:[P('webClientId',L('PRIVATE_CLIENT_VALUE')),P('clientSecret',L('PRIVATE_SECRET_VALUE')),P('responseType',L('code')),P('extraParams',{type:'ObjectExpression',properties:[P('access_type',L('offline'))]})]}]},{type:'CallExpression',callee:{type:'MemberExpression',object:I('api'),property:I('googleLogin')},arguments:[{type:'MemberExpression',object:I('result'),property:I('accessToken')},L('PRIVATE_TOKEN_VALUE')]}]};
+ const summary=summarizeGoogleAuthTree(tree);assert.deepEqual(summary.configs,[{hook:'useAuthRequest',hasClientSecret:true,responseType:'code',access_type:'offline'}]);assert.deepEqual(summary.googleLoginArgs,[['accessToken','literal-value-omitted']]);assert(!JSON.stringify(summary).includes('PRIVATE_'));
+});
