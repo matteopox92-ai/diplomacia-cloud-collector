@@ -1,0 +1,33 @@
+name: Diagnose cloud connectivity
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: cloud-diagnostics
+  cancel-in-progress: false
+jobs:
+  diagnose:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Read this public source revision
+        env:
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          git init .
+          git remote add origin "https://github.com/${SOURCE_REPOSITORY}.git"
+          git fetch --depth=1 origin "${SOURCE_SHA}"
+          git checkout --detach FETCH_HEAD
+      - name: Install pinned dependency
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run source checks
+        run: npm test
+      - name: Install standard Chromium
+        run: npx --no-install playwright install --with-deps chromium
+      - name: Test anonymous game access
+        run: npm run diagnose

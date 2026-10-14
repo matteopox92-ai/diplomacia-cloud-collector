@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+*.zip
+*.png
+*.jsonl
+sessions/
+state/
+artifacts/
+playwright-report/
+test-results/
