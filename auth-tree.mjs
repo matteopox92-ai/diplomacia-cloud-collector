@@ -1,5 +1,5 @@
 export function summarizeGoogleAuthTree(tree){
- const configs=[],googleLoginArgs=[],storedTokenLabels=[];
+ const configs=[],googleLoginArgs=[],storedTokenLabels=[],loginRequestFields=[];
  const name=n=>n?.type==='Identifier'?n.name:n?.type==='Literal'&&typeof n.value==='string'?n.value:null;
  const unwrap=n=>n?.type==='SequenceExpression'?unwrap(n.expressions.at(-1)):n;
  const method=n=>{n=unwrap(n);return n?.type==='MemberExpression'?name(n.property):name(n);};
@@ -11,6 +11,16 @@ export function summarizeGoogleAuthTree(tree){
  };
  const visit=n=>{
    if(!n||typeof n!=='object')return;
+   if(n.type==='Property'&&name(n.key)==='googleLogin'&&['ArrowFunctionExpression','FunctionExpression'].includes(n.value?.type)){
+     const fn=n.value,params=fn.params.map(name),fields={};
+     const source=v=>{
+       if(v?.type==='Identifier'){const i=params.indexOf(v.name);return i>=0?'argument-'+i:'captured-identifier';}
+       if(v?.type==='MemberExpression'){const key=name(v.property);return ['idToken','accessToken','refreshToken','token','id_token','access_token'].includes(key)?'property-'+key:'property-value-omitted';}
+       return v?.type||'missing';
+     };
+     const walk=x=>{if(!x||typeof x!=='object')return;if(x.type==='Property'&&['token','id_token','cf_token','device_fingerprint'].includes(name(x.key)))fields[name(x.key)]=source(x.value);for(const v of Object.values(x)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
+     walk(fn.body);loginRequestFields.push(fields);
+   }
    if(n.type==='CallExpression'){
      const m=method(n.callee);
      if(['useAuthRequest','useIdTokenAuthRequest'].includes(m)){
@@ -27,5 +37,5 @@ export function summarizeGoogleAuthTree(tree){
    for(const [k,v] of Object.entries(n)){if(k==='start'||k==='end')continue;if(Array.isArray(v))v.forEach(visit);else if(v&&typeof v==='object')visit(v);}
  };
  visit(tree);
- return {configs,googleLoginArgs,storedTokenLabels:[...new Set(storedTokenLabels)].sort()};
+ return {configs,googleLoginArgs,loginRequestFields,storedTokenLabels:[...new Set(storedTokenLabels)].sort()};
 }
